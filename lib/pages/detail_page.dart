@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../services/api.dart';
+
 class DetailPage extends StatefulWidget {
   final Map<String, dynamic> show;
 
@@ -15,39 +17,71 @@ class _DetailPageState extends State<DetailPage> {
   String favoritesBoxName = 'favorites';
 
   bool isFavorite = false;
+  bool isLoading = true;
+
+  Map<String, dynamic> showDetails = {};
+
+  Api service = Api();
 
   @override
   void initState() {
     super.initState();
+
+    showDetails = Map<String, dynamic>.from(widget.show);
+
     checkFavorite();
+    getShowDetails();
   }
 
+  // Memeriksa apakah serial sudah menjadi favorit
   void checkFavorite() {
     var box = Hive.box<String>(favoritesBoxName);
 
-    setState(() {
-      isFavorite = box.containsKey(widget.show['id'].toString());
-    });
+    isFavorite = box.containsKey(widget.show['id'].toString());
   }
 
+  // Mengambil detail serial TV dari API
+  Future<void> getShowDetails() async {
+    try {
+      int id = widget.show['id'];
+
+      Map<String, dynamic> data =
+          await service.getShowDetails(id);
+
+      if (!mounted) return;
+
+      setState(() {
+        showDetails = data;
+        isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  // Menambah atau menghapus favorit
   void toggleFavorite() {
     var box = Hive.box<String>(favoritesBoxName);
 
-    String id = widget.show['id'].toString();
+    String id = showDetails['id'].toString();
 
     if (isFavorite) {
       box.delete(id);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Dihapus dari favorit'),
         ),
       );
     } else {
-      box.put(id, widget.show['name']);
+      box.put(id, showDetails['name'] ?? 'Tidak ada judul');
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Ditambahkan ke favorit'),
         ),
       );
@@ -58,129 +92,219 @@ class _DetailPageState extends State<DetailPage> {
     });
   }
 
+  // Membersihkan tag HTML dari sinopsis
+  String cleanSummary(String summary) {
+    return summary.replaceAll(RegExp(r'<[^>]*>'), '');
+  }
+
   @override
   Widget build(BuildContext context) {
     String image = '';
 
-    if (widget.show['image'] != null) {
-      image = widget.show['image']['original'] ?? '';
+    if (showDetails['image'] != null) {
+      image = showDetails['image']['original'] ??
+          showDetails['image']['medium'] ??
+          '';
     }
 
-    List<dynamic> genres = widget.show['genres'] ?? [];
+    String title = showDetails['name'] ?? 'Tidak ada judul';
 
     String rating =
-        widget.show['rating']?['average']?.toString() ?? '-';
+        showDetails['rating']?['average']?.toString() ?? '-';
 
-    String summary = widget.show['summary'] ?? 'Sinopsis tidak tersedia';
+    List<dynamic> genres = showDetails['genres'] ?? [];
+
+    String summary = showDetails['summary'] ??
+        'Sinopsis tidak tersedia';
 
     return Scaffold(
+      backgroundColor: Colors.black,
+
+      // AppBar
       appBar: AppBar(
-        title: Text('Detail Serial TV'),
-        backgroundColor: Color(0xFF6750A4),
-        foregroundColor: Colors.white,
-      ),
-
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: image.isNotEmpty
-                  ? Image.network(
-                      image,
-                      height: 300,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Icon(Icons.tv, size: 150);
-                      },
-                    )
-                  : Icon(Icons.tv, size: 150),
-            ),
-
-            SizedBox(height: 20),
-
-            Text(
-              widget.show['name'] ?? 'Tidak ada judul',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            SizedBox(height: 10),
-
-            Row(
-              children: [
-                Icon(Icons.star, color: Colors.orange),
-                SizedBox(width: 5),
-                Text(
-                  'Rating: $rating',
-                  style: TextStyle(fontSize: 16),
-                ),
-              ],
-            ),
-
-            SizedBox(height: 15),
-
-            Text(
-              'Genre',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            SizedBox(height: 5),
-
-            Text(
-              genres.isNotEmpty
-                  ? genres.join(', ')
-                  : 'Genre tidak tersedia',
-            ),
-
-            SizedBox(height: 20),
-
-            Text(
-              'Sinopsis',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            SizedBox(height: 5),
-
-            Text(
-              summary.replaceAll(RegExp(r'<[^>]*>'), ''),
-              style: TextStyle(fontSize: 15),
-              textAlign: TextAlign.justify,
-            ),
-
-            SizedBox(height: 25),
-
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton.icon(
-                onPressed: toggleFavorite,
-                icon: Icon(
-                  isFavorite ? Icons.favorite : Icons.favorite_border,
-                ),
-                label: Text(
-                  isFavorite
-                      ? 'Hapus dari Favorit'
-                      : 'Tambah ke Favorit',
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF6750A4),
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ),
-          ],
+        title: const Text(
+          'Detail',
+          style: TextStyle(color: Colors.white),
         ),
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
+
+      body: isLoading
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFFFF382F),
+              ),
+            )
+          : SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Poster serial TV
+                  SizedBox(
+                    width: double.infinity,
+                    height: 350,
+                    child: image.isNotEmpty
+                        ? Image.network(
+                            image,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Icon(
+                                Icons.movie,
+                                color: Colors.grey,
+                                size: 100,
+                              );
+                            },
+                          )
+                        : const Icon(
+                            Icons.movie,
+                            color: Colors.grey,
+                            size: 100,
+                          ),
+                  ),
+
+                  // Informasi serial
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Nama serial
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        // Rating
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.star,
+                              color: Colors.amber,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              rating,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        // Genre
+                        Text(
+                          genres.isNotEmpty
+                              ? genres.join(', ')
+                              : 'Genre tidak tersedia',
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 13,
+                          ),
+                        ),
+
+                        const SizedBox(height: 18),
+
+                        // Tombol Nonton dan Favorit
+                        Row(
+                          children: [
+                            Expanded(
+                              child: SizedBox(
+                                height: 45,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Fitur pemutaran video belum tersedia',
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(
+                                    Icons.play_arrow,
+                                    size: 18,
+                                  ),
+                                  label: const Text('Nonton'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        const Color(0xFFFF382F),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(width: 10),
+
+                            // Tombol favorit
+                            Container(
+                              height: 45,
+                              width: 45,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF292929),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: IconButton(
+                                onPressed: toggleFavorite,
+                                icon: Icon(
+                                  isFavorite
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
+                                  color: isFavorite
+                                      ? const Color(0xFFFF382F)
+                                      : Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 22),
+
+                        // Overview
+                        const Text(
+                          'Overview',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        Text(
+                          cleanSummary(summary),
+                          textAlign: TextAlign.justify,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                            height: 1.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 }

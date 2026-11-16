@@ -1,7 +1,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import 'home_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -18,9 +17,6 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _passwordController =
       TextEditingController();
 
-  bool isLoggedin = false;
-  bool isPasswordVisible = false;
-
   String studentNim = '124240143';
   String sessionKey = 'logged_in_username';
 
@@ -32,10 +28,6 @@ class _LoginPageState extends State<LoginPage> {
       final prefs = await SharedPreferences.getInstance();
 
       await prefs.setString(sessionKey, username);
-
-      setState(() {
-        isLoggedin = true;
-      });
 
       if (!mounted) return;
 
@@ -64,89 +56,124 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(25),
+          padding: const EdgeInsets.symmetric(horizontal: 25),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // Logo film
               const Icon(
-                Icons.live_tv,
-                size: 90,
-                color: Color(0xFF6750A4),
+                Icons.movie,
+                size: 85,
+                color: Color(0xFFFF382F),
               ),
 
-              const SizedBox(height: 15),
+              const SizedBox(height: 10),
 
+              // Nama aplikasi
               const Text(
-                'SeriesKu',
+                'NontonSkuy!',
                 style: TextStyle(
-                  fontSize: 30,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              const Text(
-                'Temukan serial TV favoritmu!',
-                style: TextStyle(
-                  fontSize: 15,
-                  color: Colors.grey,
-                ),
-              ),
-
-              const SizedBox(height: 40),
-
-              TextField(
-                controller: _usernameController,
-                decoration: const InputDecoration(
-                  labelText: 'NIM',
-                  prefixIcon: Icon(Icons.person),
-                  border: OutlineInputBorder(),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              TextField(
-                controller: _passwordController,
-                obscureText: !isPasswordVisible,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  prefixIcon: const Icon(Icons.lock),
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      isPasswordVisible
-                          ? Icons.visibility
-                          : Icons.visibility_off,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        isPasswordVisible = !isPasswordVisible;
-                      });
-                    },
-                  ),
+                  color: Colors.white,
                 ),
               ),
 
               const SizedBox(height: 30),
 
+              // Username
+              TextField(
+                controller: _usernameController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Username',
+                  hintStyle: const TextStyle(color: Colors.grey),
+                  prefixIcon: const Icon(
+                    Icons.person,
+                    color: Colors.grey,
+                  ),
+                  filled: true,
+                  fillColor: Colors.black,
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: const BorderSide(
+                      color: Colors.grey,
+                      width: 1,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: const BorderSide(
+                      color: Color(0xFFFF382F),
+                      width: 1.5,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 15),
+
+              // Password
+              TextField(
+                controller: _passwordController,
+                obscureText: true,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Password',
+                  hintStyle: const TextStyle(color: Colors.grey),
+                  prefixIcon: const Icon(
+                    Icons.lock,
+                    color: Colors.grey,
+                  ),
+                  filled: true,
+                  fillColor: Colors.black,
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: const BorderSide(
+                      color: Colors.grey,
+                      width: 1,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: const BorderSide(
+                      color: Color(0xFFFF382F),
+                      width: 1.5,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 18),
+
+              // Tombol Login
               SizedBox(
                 width: double.infinity,
-                height: 50,
+                height: 52,
                 child: ElevatedButton(
                   onPressed: _login,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6750A4),
+                    backgroundColor: const Color(0xFFFF382F),
                     foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
                   ),
                   child: const Text(
-                    'LOGIN',
+                    'Login',
                     style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),

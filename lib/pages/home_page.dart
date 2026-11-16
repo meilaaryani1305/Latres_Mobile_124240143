@@ -34,11 +34,15 @@ class _HomePageState extends State<HomePage> {
     try {
       List<dynamic> data = await service.getShows();
 
+      if (!mounted) return;
+
       setState(() {
         shows = data;
         isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
+
       setState(() {
         isLoading = false;
         errorMessage = 'Gagal mengambil data serial TV';
@@ -46,10 +50,13 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // Tampilan halaman Home
   Widget homeContent() {
     if (isLoading) {
-      return Center(
-        child: CircularProgressIndicator(),
+      return const Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFFFF382F),
+        ),
       );
     }
 
@@ -58,8 +65,11 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(errorMessage),
-            SizedBox(height: 10),
+            Text(
+              errorMessage,
+              style: const TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 10),
             ElevatedButton(
               onPressed: () {
                 setState(() {
@@ -69,16 +79,22 @@ class _HomePageState extends State<HomePage> {
 
                 getShows();
               },
-              child: Text('Coba Lagi'),
+              child: const Text('Coba Lagi'),
             ),
           ],
         ),
       );
     }
 
-    return ListView.builder(
-      padding: EdgeInsets.all(15),
+    return GridView.builder(
+      padding: const EdgeInsets.fromLTRB(18, 5, 18, 15),
       itemCount: shows.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 14,
+        mainAxisSpacing: 15,
+        childAspectRatio: 0.62,
+      ),
       itemBuilder: (context, index) {
         var show = shows[index];
 
@@ -88,44 +104,90 @@ class _HomePageState extends State<HomePage> {
           image = show['image']['medium'] ?? '';
         }
 
-        return Card(
-          margin: EdgeInsets.only(bottom: 15),
-          child: ListTile(
-            contentPadding: EdgeInsets.all(10),
+        String title = show['name'] ?? 'Tidak ada judul';
+        String rating =
+            show['rating']?['average']?.toString() ?? '-';
 
-            leading: image.isNotEmpty
-                ? Image.network(
-                    image,
-                    width: 70,
-                    height: 100,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Icon(Icons.tv, size: 50);
-                    },
-                  )
-                : Icon(Icons.tv, size: 50),
-
-            title: Text(
-              show['name'] ?? 'Tidak ada judul',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => DetailPage(show: show),
               ),
+            );
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF292929),
+              borderRadius: BorderRadius.circular(16),
             ),
-
-            subtitle: Text(
-              'Rating: ${show['rating']?['average'] ?? '-'}',
-            ),
-
-            trailing: Icon(Icons.arrow_forward_ios),
-
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => DetailPage(show: show),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Poster serial TV
+                Expanded(
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: image.isNotEmpty
+                        ? Image.network(
+                            image,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Icon(
+                                Icons.movie,
+                                color: Colors.grey,
+                                size: 50,
+                              );
+                            },
+                          )
+                        : const Icon(
+                            Icons.movie,
+                            color: Colors.grey,
+                            size: 50,
+                          ),
+                  ),
                 ),
-              );
-            },
+
+                // Nama serial
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 9, 8, 4),
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+
+                // Rating serial
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 9),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.star,
+                        color: Colors.amber,
+                        size: 17,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        rating,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -141,26 +203,51 @@ class _HomePageState extends State<HomePage> {
     ];
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('SeriesKu'),
-        backgroundColor: Color(0xFF6750A4),
-        foregroundColor: Colors.white,
+      backgroundColor: Colors.black,
+
+      // Bagian isi halaman
+      body: SafeArea(
+        child: selectedIndex == 0
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(18, 18, 18, 20),
+                    child: Text(
+                      'Skuy Nonton!',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: pages[selectedIndex],
+                  ),
+                ],
+              )
+            : pages[selectedIndex],
       ),
 
-      body: pages[selectedIndex],
-
+      // Navigasi bawah
       bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: Colors.black,
         currentIndex: selectedIndex,
         onTap: (index) {
           setState(() {
             selectedIndex = index;
           });
         },
-        selectedItemColor: Color(0xFF6750A4),
-        items: [
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: const Color(0xFFFF382F),
+        unselectedItemColor: Colors.grey,
+        selectedFontSize: 12,
+        unselectedFontSize: 12,
+        items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
-            label: 'Home',
+            label: 'Beranda',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.favorite),

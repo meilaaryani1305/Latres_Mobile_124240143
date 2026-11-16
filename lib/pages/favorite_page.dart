@@ -27,6 +27,7 @@ class _FavoritePageState extends State<FavoritePage> {
     getFavorites();
   }
 
+  // Mengambil daftar serial favorit
   Future<void> getFavorites() async {
     try {
       var box = Hive.box<String>(favoritesBoxName);
@@ -37,17 +38,22 @@ class _FavoritePageState extends State<FavoritePage> {
         return box.containsKey(show['id'].toString());
       }).toList();
 
+      if (!mounted) return;
+
       setState(() {
         favorites = favoriteShows;
         isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
+
       setState(() {
         isLoading = false;
       });
     }
   }
 
+  // Menghapus serial dari favorit
   void deleteFavorite(String id) {
     var box = Hive.box<String>(favoritesBoxName);
 
@@ -60,7 +66,7 @@ class _FavoritePageState extends State<FavoritePage> {
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+      const SnackBar(
         content: Text('Serial berhasil dihapus dari favorit'),
       ),
     );
@@ -68,84 +74,178 @@ class _FavoritePageState extends State<FavoritePage> {
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return Center(
-        child: CircularProgressIndicator(),
-      );
-    }
-
-    if (favorites.isEmpty) {
-      return Center(
-        child: Text(
-          'Belum ada serial favorit',
-          style: TextStyle(fontSize: 16),
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: EdgeInsets.all(15),
-      itemCount: favorites.length,
-      itemBuilder: (context, index) {
-        var show = favorites[index];
-
-        String id = show['id'].toString();
-
-        String image = '';
-
-        if (show['image'] != null) {
-          image = show['image']['medium'] ?? '';
-        }
-
-        return Card(
-          margin: EdgeInsets.only(bottom: 15),
-          child: ListTile(
-            contentPadding: EdgeInsets.all(10),
-
-            leading: image.isNotEmpty
-                ? Image.network(
-                    image,
-                    width: 70,
-                    height: 100,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Icon(Icons.tv, size: 50);
-                    },
-                  )
-                : Icon(Icons.tv, size: 50),
-
-            title: Text(
-              show['name'] ?? 'Tidak ada judul',
+    return Container(
+      color: Colors.black,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Judul halaman
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 25, 20, 20),
+            child: Text(
+              'Daftar Favorit',
               style: TextStyle(
-                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w500,
               ),
             ),
-
-            subtitle: Text(
-              'Rating: ${show['rating']?['average'] ?? '-'}',
-            ),
-
-            trailing: IconButton(
-              icon: Icon(
-                Icons.delete,
-                color: Colors.red,
-              ),
-              onPressed: () {
-                deleteFavorite(id);
-              },
-            ),
-
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => DetailPage(show: show),
-                ),
-              );
-            },
           ),
-        );
-      },
+
+          // Loading
+          if (isLoading)
+            const Expanded(
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFFFF382F),
+                ),
+              ),
+            )
+
+          // Jika belum ada favorit
+          else if (favorites.isEmpty)
+            const Expanded(
+              child: Center(
+                child: Text(
+                  'Belum ada serial favorit',
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            )
+
+          // Daftar favorit
+          else
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.fromLTRB(15, 0, 15, 15),
+                itemCount: favorites.length,
+                itemBuilder: (context, index) {
+                  var show = favorites[index];
+
+                  String id = show['id'].toString();
+
+                  String image = '';
+
+                  if (show['image'] != null) {
+                    image = show['image']['medium'] ?? '';
+                  }
+
+                  String title =
+                      show['name'] ?? 'Tidak ada judul';
+
+                  String rating = show['rating']?['average']
+                          ?.toString() ??
+                      '-';
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1C1C1C),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 5,
+                      ),
+
+                      // Poster serial
+                      leading: ClipRRect(
+                        borderRadius: BorderRadius.circular(5),
+                        child: image.isNotEmpty
+                            ? Image.network(
+                                image,
+                                width: 45,
+                                height: 50,
+                                fit: BoxFit.cover,
+                                errorBuilder:
+                                    (context, error, stackTrace) {
+                                  return const SizedBox(
+                                    width: 45,
+                                    height: 50,
+                                    child: Icon(
+                                      Icons.movie,
+                                      color: Colors.grey,
+                                    ),
+                                  );
+                                },
+                              )
+                            : const SizedBox(
+                                width: 45,
+                                height: 50,
+                                child: Icon(
+                                  Icons.movie,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                      ),
+
+                      // Nama dan rating serial
+                      title: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 3),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.star,
+                              color: Colors.amber,
+                              size: 15,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              rating,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Tombol hapus
+                      trailing: IconButton(
+                        icon: const Icon(
+                          Icons.delete,
+                          color: Color(0xFFFF382F),
+                        ),
+                        onPressed: () {
+                          deleteFavorite(id);
+                        },
+                      ),
+
+                      // Masuk ke halaman detail
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                DetailPage(show: show),
+                          ),
+                        );
+
+                        getFavorites();
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
